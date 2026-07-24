@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+    font-feature-settings: 'ss01' on;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-medium;
+  }
+
+  ::selection {
+    @apply bg-mauve-200 text-ink;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.mauve.500');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-container px-5 md:px-10;
+  }
+
+  .eyebrow {
+    @apply text-[11px] uppercase tracking-widest2 text-ink/50;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center bg-ink px-7 py-3 text-[13px] tracking-wide text-paper transition-colors duration-250 hover:bg-mauve-700 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center border border-ink px-7 py-3 text-[13px] tracking-wide text-ink transition-colors duration-250 hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-5 py-2.5 text-[13px] tracking-wide text-ink underline underline-offset-4 transition-colors duration-250 hover:text-mauve-600;
+  }
+
+  .section-title {
+    @apply font-display text-2xl md:text-3xl;
+  }
+
+  .input-field {
+    @apply w-full border border-line bg-paper px-4 py-3 text-sm outline-none transition-colors duration-250 placeholder:text-ink/40 focus:border-mauve-400;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
