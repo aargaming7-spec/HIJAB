@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Heart, Minus, Plus, Truck, RotateCcw } from 'lucide-react'
-import products from '../data/products.js'
+import { useProducts } from '../hooks/useProducts.js'
 import { formatIDR } from '../utils/format.js'
 import { useCart } from '../context/CartContext.jsx'
 import { useWishlist } from '../context/WishlistContext.jsx'
@@ -24,6 +24,7 @@ const dummyReviews = [
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { products, loading } = useProducts()
   const product = products.find((p) => p.id === id)
 
   const { addToCart } = useCart()
@@ -42,10 +43,12 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="container-page py-24 text-center">
-        <p className="text-ink/60">Produk tidak ditemukan.</p>
-        <Link to="/shop" className="btn-outline mt-6 inline-flex">
-          Kembali ke Shop
-        </Link>
+        <p className="text-ink/60">{loading ? 'Memuat produk...' : 'Produk tidak ditemukan.'}</p>
+        {!loading && (
+          <Link to="/shop" className="btn-outline mt-6 inline-flex">
+            Kembali ke Shop
+          </Link>
+        )}
       </div>
     )
   }

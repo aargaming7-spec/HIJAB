@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
-import products, { categories, collections } from '../data/products.js'
+import { categories, collections } from '../data/products.js'
+import { useProducts } from '../hooks/useProducts.js'
 import FilterSidebar from '../components/FilterSidebar.jsx'
 import ProductGrid from '../components/ProductGrid.jsx'
 
@@ -21,6 +22,7 @@ const emptyFilters = {
 }
 
 export default function Shop() {
+  const { products } = useProducts()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState(emptyFilters)
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest')
@@ -52,7 +54,7 @@ export default function Shop() {
     })
 
     return list
-  }, [filters, sort])
+  }, [filters, sort, products])
 
   function handleSortChange(value) {
     setSort(value)

@@ -48,6 +48,19 @@ src/
 
 ## Catatan
 
-- Data produk masih menggunakan dummy (16 produk) di `src/data/products.js`, termasuk foto placeholder dari picsum.photos — ganti dengan foto produk asli di `src/assets/` sebelum production.
 - Cart & Wishlist tersimpan di `localStorage`, jadi tetap ada setelah refresh browser.
-- Tidak ada backend/API — semua state ada di sisi client.
+- Kalau Supabase belum dikonfigurasi, website otomatis pakai data dummy di `src/data/products.js` sebagai fallback.
+
+## Setup Supabase (database produk + admin login)
+
+1. **Buat tabel produk.** Buka Supabase Dashboard → SQL Editor → New query, lalu jalankan isi file `supabase/schema.sql` di repo ini. Ini akan membuat tabel `products` beserta aturan keamanan (Row Level Security): siapa saja boleh membaca produk, tapi hanya user yang login yang boleh menambah/mengubah/menghapus.
+
+2. **Buat akun admin.** Buka Supabase Dashboard → Authentication → Users → Add user. Isi email & password — ini yang dipakai untuk login di halaman `/admin/login`. (Jangan pakai form sign-up dari website, karena memang sengaja tidak dibuatkan — supaya hanya kamu yang bisa jadi admin.)
+
+3. **Isi kredensial di project.**
+   - Untuk development lokal: copy `.env.example` menjadi `.env`, isi `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` (ambil dari Supabase Dashboard → Settings → API, bagian **Project URL** dan **anon public key**).
+   - Untuk deploy GitHub Pages: buka repo di GitHub → Settings → Secrets and variables → Actions → New repository secret. Tambahkan dua secret: `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY`. Workflow deploy sudah dikonfigurasi untuk otomatis memakainya saat build.
+
+4. **Kelola katalog.** Buka `/#/admin/login` di website, login dengan akun admin yang dibuat di langkah 2. Dari dashboard admin kamu bisa menambah, mengedit, dan menghapus produk — perubahan langsung tersimpan di Supabase dan muncul di halaman Shop/Home.
+
+Selama Supabase belum diisi, website tetap jalan normal memakai data contoh lokal, tapi fitur admin tidak aktif.

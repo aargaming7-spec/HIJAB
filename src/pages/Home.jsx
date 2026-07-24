@@ -6,10 +6,11 @@ import WhyChooseUs from '../components/WhyChooseUs.jsx'
 import InstagramGallery from '../components/InstagramGallery.jsx'
 import Newsletter from '../components/Newsletter.jsx'
 import Reveal from '../components/Reveal.jsx'
-import products from '../data/products.js'
+import { useProducts } from '../hooks/useProducts.js'
 import { Link } from 'react-router-dom'
 
 export default function Home() {
+  const { products } = useProducts()
   const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 8)
   const newArrivals = products.filter((p) => p.isNewArrival).slice(0, 8)
 

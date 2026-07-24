@@ -13,6 +13,9 @@ import Wishlist from './pages/Wishlist.jsx'
 import About from './pages/About.jsx'
 import Contact from './pages/Contact.jsx'
 import NotFound from './pages/NotFound.jsx'
+import AdminLogin from './pages/AdminLogin.jsx'
+import AdminDashboard from './pages/AdminDashboard.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -24,11 +27,13 @@ function ScrollToTop() {
 
 export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
+  const { pathname } = useLocation()
+  const isAdminRoute = pathname.startsWith('/admin')
 
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
-      <Navbar onSearchOpen={() => setSearchOpen(true)} />
+      {!isAdminRoute && <Navbar onSearchOpen={() => setSearchOpen(true)} />}
 
       <main className="flex-1">
         <Routes>
@@ -39,13 +44,22 @@ export default function App() {
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
-      <Footer />
-      <CartDrawer />
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && <CartDrawer />}
+      {!isAdminRoute && <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />}
     </div>
   )
 }

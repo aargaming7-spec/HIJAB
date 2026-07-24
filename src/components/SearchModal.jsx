@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { X, Search } from 'lucide-react'
-import products from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 import { formatIDR } from '../utils/format'
 
 export default function SearchModal({ open, onClose }) {
+  const { products } = useProducts()
   const [query, setQuery] = useState('')
 
   const results = useMemo(() => {
@@ -18,7 +19,7 @@ export default function SearchModal({ open, onClose }) {
           p.collection.toLowerCase().includes(q)
       )
       .slice(0, 8)
-  }, [query])
+  }, [query, products])
 
   if (!open) return null
 

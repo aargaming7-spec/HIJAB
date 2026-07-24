@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useWishlist } from '../context/WishlistContext.jsx'
-import products from '../data/products.js'
+import { useProducts } from '../hooks/useProducts.js'
 import ProductGrid from '../components/ProductGrid.jsx'
 
 export default function Wishlist() {
   const { ids } = useWishlist()
+  const { products } = useProducts()
   const items = products.filter((p) => ids.includes(p.id))
 
   if (items.length === 0) {

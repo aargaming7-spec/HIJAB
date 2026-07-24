@@ -1,0 +1,259 @@
+import { useState } from 'react'
+import { Trash2, Pencil, Plus, LogOut, X } from 'lucide-react'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useProducts } from '../hooks/useProducts.js'
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
+import { formatIDR } from '../utils/format.js'
+
+const emptyForm = {
+  id: null,
+  name: '',
+  category: 'Hijab',
+  collection: '',
+  price: '',
+  discount_price: '',
+  images: '',
+  colors: '',
+  sizes: '',
+  material: '',
+  description: '',
+  stock: '',
+  rating: '',
+  is_best_seller: false,
+  is_new_arrival: false,
+}
+
+export default function AdminDashboard() {
+  const { logout } = useAuth()
+  const { products, loading, source, refresh } = useProducts()
+  const [formOpen, setFormOpen] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function openCreate() {
+    setForm(emptyForm)
+    setFormOpen(true)
+  }
+
+  function openEdit(p) {
+    setForm({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      collection: p.collection || '',
+      price: p.price,
+      discount_price: p.discountPrice ?? '',
+      images: (p.images || []).join(', '),
+      colors: (p.colors || []).join(', '),
+      sizes: (p.sizes || []).join(', '),
+      material: p.material || '',
+      description: p.description || '',
+      stock: p.stock,
+      rating: p.rating,
+      is_best_seller: p.isBestSeller,
+      is_new_arrival: p.isNewArrival,
+    })
+    setFormOpen(true)
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setError('')
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase belum dikonfigurasi.')
+      return
+    }
+
+    setSaving(true)
+    const payload = {
+      name: form.name,
+      category: form.category,
+      collection: form.collection || null,
+      price: Number(form.price) || 0,
+      discount_price: form.discount_price === '' ? null : Number(form.discount_price),
+      images: form.images.split(',').map((s) => s.trim()).filter(Boolean),
+      colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
+      sizes: form.sizes ? form.sizes.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      material: form.material,
+      description: form.description,
+      stock: Number(form.stock) || 0,
+      rating: Number(form.rating) || 0,
+      is_best_seller: form.is_best_seller,
+      is_new_arrival: form.is_new_arrival,
+    }
+
+    const query = form.id
+      ? supabase.from('products').update(payload).eq('id', form.id)
+      : supabase.from('products').insert(payload)
+
+    const { error } = await query
+    setSaving(false)
+
+    if (error) {
+      setError(error.message)
+      return
+    }
+
+    setFormOpen(false)
+    refresh()
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Hapus produk ini?')) return
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    refresh()
+  }
+
+  return (
+    <div className="container-page py-10 md:py-16">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-2">Admin</p>
+          <h1 className="font-display text-2xl md:text-3xl">Kelola Katalog</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <Plus size={16} /> Tambah Produk
+          </button>
+          <button onClick={logout} className="btn-outline flex items-center gap-2">
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
+      </div>
+
+      {!isSupabaseConfigured && (
+        <p className="mb-6 border border-line bg-mist p-3 text-xs text-ink/60">
+          Supabase belum dikonfigurasi — perubahan tidak akan tersimpan. Isi VITE_SUPABASE_URL dan
+          VITE_SUPABASE_ANON_KEY di file .env.
+        </p>
+      )}
+
+      {source === 'local' && isSupabaseConfigured && (
+        <p className="mb-6 border border-line bg-mist p-3 text-xs text-ink/60">
+          Tabel "products" di Supabase masih kosong, jadi website menampilkan data contoh lokal.
+          Tambah produk pertama kamu di bawah ini untuk mulai memakai data dari Supabase.
+        </p>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-ink/50">Memuat produk...</p>
+      ) : (
+        <div className="overflow-x-auto border border-line">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-line bg-mist text-left text-xs uppercase tracking-wide text-ink/50">
+                <th className="px-4 py-3">Produk</th>
+                <th className="px-4 py-3">Kategori</th>
+                <th className="px-4 py-3">Harga</th>
+                <th className="px-4 py-3">Stok</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="border-b border-line/70 last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <img src={p.images?.[0]} alt={p.name} className="h-12 w-10 object-cover" />
+                      <span>{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-ink/60">{p.category}</td>
+                  <td className="px-4 py-3">
+                    {formatIDR(p.discountPrice ?? p.price)}
+                    {p.discountPrice && (
+                      <span className="ml-2 text-xs text-ink/40 line-through">{formatIDR(p.price)}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-ink/60">{p.stock}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {p.isBestSeller && <span className="bg-mauve-100 px-2 py-0.5 text-[10px] text-mauve-700">Best Seller</span>}
+                      {p.isNewArrival && <span className="bg-gold/15 px-2 py-0.5 text-[10px] text-gold">New</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => openEdit(p)} aria-label="Edit" className="grid h-8 w-8 place-items-center hover:text-mauve-600">
+                        <Pencil size={15} />
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} aria-label="Hapus" className="grid h-8 w-8 place-items-center hover:text-red-600">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {formOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button className="absolute inset-0 bg-ink/40" onClick={() => setFormOpen(false)} aria-label="Tutup" />
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto bg-paper p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-display text-lg">{form.id ? 'Edit Produk' : 'Tambah Produk'}</h2>
+              <button onClick={() => setFormOpen(false)} aria-label="Tutup">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-3">
+              <input required placeholder="Nama produk" className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <select className="input-field" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <option>Hijab</option>
+                  <option>Accessories</option>
+                </select>
+                <input placeholder="Collection (Voal, Pashmina, ...)" className="input-field" value={form.collection} onChange={(e) => setForm({ ...form, collection: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <input required type="number" placeholder="Harga" className="input-field" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                <input type="number" placeholder="Harga diskon (opsional)" className="input-field" value={form.discount_price} onChange={(e) => setForm({ ...form, discount_price: e.target.value })} />
+              </div>
+
+              <input placeholder="URL foto, pisahkan dengan koma" className="input-field" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} />
+              <input placeholder="Warna, pisahkan dengan koma" className="input-field" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} />
+              <input placeholder="Ukuran, pisahkan dengan koma (opsional)" className="input-field" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} />
+              <input placeholder="Material" className="input-field" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />
+              <textarea placeholder="Deskripsi" rows={3} className="input-field resize-none" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <input required type="number" placeholder="Stok" className="input-field" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                <input type="number" step="0.1" placeholder="Rating (0-5)" className="input-field" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} />
+              </div>
+
+              <div className="flex gap-6 pt-1 text-sm">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={form.is_best_seller} onChange={(e) => setForm({ ...form, is_best_seller: e.target.checked })} />
+                  Best Seller
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={form.is_new_arrival} onChange={(e) => setForm({ ...form, is_new_arrival: e.target.checked })} />
+                  New Arrival
+                </label>
+              </div>
+
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
+              <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-50">
+                {saving ? 'Menyimpan...' : 'Simpan Produk'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
