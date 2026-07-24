@@ -15,6 +15,9 @@ import Contact from './pages/Contact.jsx'
 import NotFound from './pages/NotFound.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
+import Checkout from './pages/Checkout.jsx'
+import OrderSuccess from './pages/OrderSuccess.jsx'
+import TrackOrder from './pages/TrackOrder.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 function ScrollToTop() {
@@ -41,6 +44,9 @@ export default function App() {
           <Route path="/shop" element={<Shop />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

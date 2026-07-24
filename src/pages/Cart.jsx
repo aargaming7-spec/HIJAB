@@ -72,7 +72,9 @@ export default function Cart() {
             <span>{formatIDR(subtotal)}</span>
           </div>
           <p className="mt-2 text-xs text-ink/40">Ongkos kirim dihitung saat checkout.</p>
-          <button className="btn-primary mt-6 w-full">Checkout</button>
+          <Link to="/checkout" className="btn-primary mt-6 block w-full text-center">
+            Checkout
+          </Link>
           <Link to="/shop" className="mt-4 block text-center text-xs text-ink/50 underline underline-offset-4 hover:text-mauve-600 transition-colors duration-250">
             Lanjut Belanja
           </Link>

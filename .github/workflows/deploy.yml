@@ -35,6 +35,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_MIDTRANS_CLIENT_KEY: ${{ secrets.VITE_MIDTRANS_CLIENT_KEY }}
+          VITE_MIDTRANS_IS_PRODUCTION: ${{ secrets.VITE_MIDTRANS_IS_PRODUCTION }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

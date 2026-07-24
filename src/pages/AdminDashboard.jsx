@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useProducts } from '../hooks/useProducts.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
+import AdminOrders from '../components/AdminOrders.jsx'
 
 const emptyForm = {
   id: null,
@@ -25,6 +26,7 @@ const emptyForm = {
 
 export default function AdminDashboard() {
   const { logout } = useAuth()
+  const [tab, setTab] = useState('products')
   const { products, loading, source, refresh } = useProducts()
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -115,17 +117,39 @@ export default function AdminDashboard() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="eyebrow mb-2">Admin</p>
-          <h1 className="font-display text-2xl md:text-3xl">Kelola Katalog</h1>
+          <h1 className="font-display text-2xl md:text-3xl">Dashboard</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-            <Plus size={16} /> Tambah Produk
-          </button>
+          {tab === 'products' && (
+            <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> Tambah Produk
+            </button>
+          )}
           <button onClick={logout} className="btn-outline flex items-center gap-2">
             <LogOut size={16} /> Logout
           </button>
         </div>
       </div>
+
+      <div className="mb-8 flex gap-2 border-b border-line">
+        <button
+          onClick={() => setTab('products')}
+          className={`border-b-2 px-1 pb-3 text-sm ${tab === 'products' ? 'border-ink text-ink' : 'border-transparent text-ink/50'}`}
+        >
+          Katalog
+        </button>
+        <button
+          onClick={() => setTab('orders')}
+          className={`border-b-2 px-1 pb-3 text-sm ${tab === 'orders' ? 'border-ink text-ink' : 'border-transparent text-ink/50'}`}
+        >
+          Pesanan
+        </button>
+      </div>
+
+      {tab === 'orders' ? (
+        <AdminOrders />
+      ) : (
+        <>
 
       {!isSupabaseConfigured && (
         <p className="mb-6 border border-line bg-mist p-3 text-xs text-ink/60">
@@ -253,6 +277,8 @@ export default function AdminDashboard() {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )

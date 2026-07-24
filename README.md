@@ -64,3 +64,54 @@ src/
 4. **Kelola katalog.** Buka `/#/admin/login` di website, login dengan akun admin yang dibuat di langkah 2. Dari dashboard admin kamu bisa menambah, mengedit, dan menghapus produk — perubahan langsung tersimpan di Supabase dan muncul di halaman Shop/Home.
 
 Selama Supabase belum diisi, website tetap jalan normal memakai data contoh lokal, tapi fitur admin tidak aktif.
+
+## Setup Checkout + Payment Gateway (Midtrans)
+
+Fitur checkout butuh **Supabase Edge Functions** (kode server kecil yang menyimpan Server Key Midtrans dengan aman — tidak boleh ada di kode frontend). Ini beda dari deploy website biasa, perlu Supabase CLI.
+
+### 1. Jalankan schema order
+Supabase Dashboard → SQL Editor → jalankan isi `supabase/orders_schema.sql` (setelah `schema.sql` sudah dijalankan lebih dulu).
+
+### 2. Install Supabase CLI
+```bash
+npm install -g supabase
+```
+
+### 3. Login & hubungkan ke project
+```bash
+supabase login
+supabase link --project-ref glcguunpgoerxuqemzjj
+```
+(ganti `glcguunpgoerxuqemzjj` kalau project-ref kamu beda — lihat di URL dashboard Supabase kamu)
+
+### 4. Set secret untuk Edge Functions
+Ambil dari Midtrans Dashboard → Settings → Access Keys, dan Supabase Dashboard → Settings → API (untuk `service_role` key — **beda** dari anon key, jangan tertukar):
+
+```bash
+supabase secrets set MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxxxx
+supabase secrets set MIDTRANS_IS_PRODUCTION=false
+supabase secrets set SUPABASE_URL=https://glcguunpgoerxuqemzjj.supabase.co
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=isi-dengan-service-role-key
+```
+
+### 5. Deploy Edge Functions
+```bash
+supabase functions deploy create-transaction
+supabase functions deploy midtrans-webhook
+supabase functions deploy track-order
+```
+
+### 6. Daftarkan Webhook URL di Midtrans
+Setelah deploy, kamu dapat URL seperti:
+`https://glcguunpgoerxuqemzjj.supabase.co/functions/v1/midtrans-webhook`
+
+Masukkan URL itu ke: Midtrans Dashboard → Settings → Configuration → **Payment Notification URL**.
+
+### 7. Isi Client Key di frontend
+Tambahkan ke `.env` (lokal) dan sebagai GitHub Secret (untuk deploy) — lihat `.env.example`:
+```
+VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxx
+VITE_MIDTRANS_IS_PRODUCTION=false
+```
+
+Setelah semua langkah ini selesai, checkout di website akan membuka popup pembayaran Midtrans (Snap), dan status pembayaran otomatis update begitu customer selesai bayar. Customer bisa cek status pesanan mereka di halaman `/track-order` dengan nomor pesanan + no HP.

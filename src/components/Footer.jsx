@@ -22,6 +22,7 @@ const columns = [
     title: 'Customer Service',
     links: [
       { label: 'FAQ', to: '/contact' },
+      { label: 'Lacak Pesanan', to: '/track-order' },
       { label: 'Pengiriman', to: '/contact' },
       { label: 'Return', to: '/contact' },
       { label: 'Contact', to: '/contact' },

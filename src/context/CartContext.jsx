@@ -41,6 +41,10 @@ export function CartProvider({ children }) {
     setItems((prev) => prev.filter((it) => it.key !== key))
   }
 
+  function clearCart() {
+    setItems([])
+  }
+
   function updateQuantity(key, quantity) {
     if (quantity < 1) return
     setItems((prev) => prev.map((it) => (it.key === key ? { ...it, quantity } : it)))
@@ -57,6 +61,7 @@ export function CartProvider({ children }) {
     addToCart,
     removeFromCart,
     updateQuantity,
+    clearCart,
     subtotal,
     count,
     isCartOpen,
