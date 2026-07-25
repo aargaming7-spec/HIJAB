@@ -68,26 +68,31 @@ export default function Checkout() {
 
     if (DUMMY_MODE) {
       // Mode dummy: insert order langsung dari frontend, tanpa payment gateway.
+      // ID order dibuat di sisi website (crypto.randomUUID()), bukan minta
+      // balikan dari Supabase (.select()) setelah insert. Ini sengaja: kalau
+      // pakai .select(), Supabase perlu izin SELECT pada baris yang baru saja
+      // dibuat, dan pengunjung biasa (anon) tidak (dan sebaiknya tidak) diberi
+      // izin itu — supaya orang lain nggak bisa baca semua pesanan orang lain.
+      // Dengan ID dibuat sendiri, kita tidak pernah perlu baca balik dari DB.
+      const orderId = crypto.randomUUID()
       const orderNumber = `ALR-DUMMY-${Date.now()}`
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_name: form.name,
-          customer_phone: form.phone,
-          customer_email: form.email || null,
-          shipping_address: form.address,
-          city: form.city || null,
-          postal_code: form.postalCode || null,
-          notes: form.notes || null,
-          subtotal,
-          shipping_cost: SHIPPING_COST,
-          total,
-          payment_status: 'pending', // belum ada payment gateway, jadi selalu "pending"
-          order_status: 'processing',
-        })
-        .select()
-        .single()
+
+      const { error: orderError } = await supabase.from('orders').insert({
+        id: orderId,
+        order_number: orderNumber,
+        customer_name: form.name,
+        customer_phone: form.phone,
+        customer_email: form.email || null,
+        shipping_address: form.address,
+        city: form.city || null,
+        postal_code: form.postalCode || null,
+        notes: form.notes || null,
+        subtotal,
+        shipping_cost: SHIPPING_COST,
+        total,
+        payment_status: 'pending', // belum ada payment gateway, jadi selalu "pending"
+        order_status: 'processing',
+      })
 
       if (orderError) {
         setLoading(false)
@@ -96,7 +101,7 @@ export default function Checkout() {
       }
 
       const orderItems = items.map((it) => ({
-        order_id: order.id,
+        order_id: orderId,
         product_id: safeProductId(it.productId),
         product_name: it.name,
         product_image: it.image,
