@@ -14,6 +14,14 @@ const MIDTRANS_SNAP_URL = MIDTRANS_IS_PRODUCTION
   ? 'https://app.midtrans.com/snap/v1/transactions'
   : 'https://app.sandbox.midtrans.com/snap/v1/transactions'
 
+// Produk dari fallback lokal (sebelum admin import ke Supabase) punya id
+// seperti "voal-clara", bukan UUID. Kolom product_id di database bertipe
+// uuid, jadi kalau bukan format UUID, kirim null saja.
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function safeProductId(id) {
+  return UUID_REGEX.test(id || '') ? id : null
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -66,7 +74,7 @@ Deno.serve(async (req) => {
 
     const orderItems = items.map((i) => ({
       order_id: order.id,
-      product_id: i.id,
+      product_id: safeProductId(i.id),
       product_name: i.name,
       product_image: i.image || null,
       color: i.color || null,

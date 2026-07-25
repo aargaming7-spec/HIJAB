@@ -9,6 +9,15 @@ const MIDTRANS_CLIENT_KEY = import.meta.env.VITE_MIDTRANS_CLIENT_KEY
 const MIDTRANS_IS_PRODUCTION = import.meta.env.VITE_MIDTRANS_IS_PRODUCTION === 'true'
 const SHIPPING_COST = 15000
 
+// Data produk lama (fallback lokal, sebelum admin import ke Supabase) pakai
+// id seperti "voal-clara", bukan UUID. Kolom product_id di database bertipe
+// uuid, jadi kalau id-nya bukan format UUID, dikirim null saja (nama produk
+// tetap tersimpan di order_items, cuma relasinya ke tabel products dilepas).
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function safeProductId(id) {
+  return UUID_REGEX.test(id) ? id : null
+}
+
 // Selama Midtrans belum di-setup (VITE_MIDTRANS_CLIENT_KEY kosong), checkout
 // jalan dalam mode "dummy": order tetap tersimpan ke Supabase & bisa dilihat
 // di Admin/Track Order, tapi tanpa proses pembayaran sungguhan.
@@ -88,7 +97,7 @@ export default function Checkout() {
 
       const orderItems = items.map((it) => ({
         order_id: order.id,
-        product_id: it.productId,
+        product_id: safeProductId(it.productId),
         product_name: it.name,
         product_image: it.image,
         color: it.color,

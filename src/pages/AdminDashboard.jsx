@@ -7,6 +7,7 @@ import { formatIDR } from '../utils/format.js'
 import AdminOrders from '../components/AdminOrders.jsx'
 import AdminContent from '../components/AdminContent.jsx'
 import VariantStockEditor from '../components/VariantStockEditor.jsx'
+import localProducts from '../data/products.js'
 
 const emptyForm = {
   id: null,
@@ -37,6 +38,32 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+
+  async function handleImportLocalProducts() {
+    setImporting(true)
+    setImportError('')
+
+    // id lokal (misal "voal-clara") bukan format UUID, jadi tidak dikirim —
+    // biar Supabase yang generate UUID baru untuk tiap produk.
+    const payload = localProducts.map(({ id, discountPrice, isBestSeller, isNewArrival, ...rest }) => ({
+      ...rest,
+      discount_price: discountPrice,
+      is_best_seller: isBestSeller,
+      is_new_arrival: isNewArrival,
+      variants: [],
+    }))
+
+    const { error } = await supabase.from('products').insert(payload)
+    setImporting(false)
+
+    if (error) {
+      setImportError(error.message)
+      return
+    }
+    refresh()
+  }
 
   async function handleFileUpload(e) {
     const files = Array.from(e.target.files || [])
@@ -210,10 +237,17 @@ export default function AdminDashboard() {
       )}
 
       {source === 'local' && isSupabaseConfigured && (
-        <p className="mb-6 border border-line bg-mist p-3 text-xs text-ink/60">
-          Tabel "products" di Supabase masih kosong, jadi website menampilkan data contoh lokal.
-          Tambah produk pertama kamu di bawah ini untuk mulai memakai data dari Supabase.
-        </p>
+        <div className="mb-6 border border-line bg-mist p-3 text-xs text-ink/60">
+          <p className="mb-2">
+            Tabel "products" di Supabase masih kosong, jadi website menampilkan data contoh lokal.
+            Data ini <span className="font-medium text-ink">belum bisa diedit atau dibeli</span>{' '}
+            karena belum tersimpan di database sungguhan.
+          </p>
+          <button onClick={handleImportLocalProducts} disabled={importing} className="btn-outline text-xs disabled:opacity-50">
+            {importing ? 'Mengimpor...' : 'Import 16 Produk Contoh ke Supabase'}
+          </button>
+          {importError && <p className="mt-2 text-red-600">{importError}</p>}
+        </div>
       )}
 
       {loading ? (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Download } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
 
@@ -48,6 +48,75 @@ export default function AdminOrders() {
 
   const filtered = orders.filter((o) => filter === 'all' || o.order_status === filter)
 
+  function exportToCSV() {
+    const headers = [
+      'No. Pesanan',
+      'Tanggal',
+      'Nama Customer',
+      'No. HP',
+      'Email',
+      'Alamat',
+      'Kota',
+      'Kode Pos',
+      'Item',
+      'Subtotal',
+      'Ongkos Kirim',
+      'Total',
+      'Status Pembayaran',
+      'Status Pesanan',
+      'Kurir',
+      'No. Resi',
+      'Catatan',
+    ]
+
+    function escapeCSV(value) {
+      const str = String(value ?? '')
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const rows = filtered.map((o) => {
+      const itemsSummary = (o.order_items || [])
+        .map((it) => `${it.product_name}${it.color ? ` (${[it.color, it.size].filter(Boolean).join('/')})` : ''} x${it.quantity}`)
+        .join('; ')
+
+      return [
+        o.order_number,
+        new Date(o.created_at).toLocaleString('id-ID'),
+        o.customer_name,
+        o.customer_phone,
+        o.customer_email || '',
+        o.shipping_address,
+        o.city || '',
+        o.postal_code || '',
+        itemsSummary,
+        o.subtotal,
+        o.shipping_cost,
+        o.total,
+        paymentLabel[o.payment_status] || o.payment_status,
+        orderStatusOptions.find((s) => s.value === o.order_status)?.label || o.order_status,
+        o.courier || '',
+        o.tracking_number || '',
+        o.notes || '',
+      ]
+        .map(escapeCSV)
+        .join(',')
+    })
+
+    // Tambah BOM (\ufeff) supaya Excel baca karakter Indonesia (é, dsb) dengan benar
+    const csvContent = '\ufeff' + [headers.map(escapeCSV).join(','), ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const dateStr = new Date().toISOString().slice(0, 10)
+    link.href = url
+    link.download = `pesanan-alara-${dateStr}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   async function handleUpdate(order, patch) {
     setSaving(true)
     const { error } = await supabase.from('orders').update(patch).eq('id', order.id)
@@ -62,22 +131,32 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`border px-3 py-1.5 text-xs ${filter === 'all' ? 'border-ink bg-ink text-paper' : 'border-line text-ink/60'}`}
-        >
-          Semua ({orders.length})
-        </button>
-        {orderStatusOptions.map((opt) => (
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            key={opt.value}
-            onClick={() => setFilter(opt.value)}
-            className={`border px-3 py-1.5 text-xs ${filter === opt.value ? 'border-ink bg-ink text-paper' : 'border-line text-ink/60'}`}
+            onClick={() => setFilter('all')}
+            className={`border px-3 py-1.5 text-xs ${filter === 'all' ? 'border-ink bg-ink text-paper' : 'border-line text-ink/60'}`}
           >
-            {opt.label} ({orders.filter((o) => o.order_status === opt.value).length})
+            Semua ({orders.length})
           </button>
-        ))}
+          {orderStatusOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFilter(opt.value)}
+              className={`border px-3 py-1.5 text-xs ${filter === opt.value ? 'border-ink bg-ink text-paper' : 'border-line text-ink/60'}`}
+            >
+              {opt.label} ({orders.filter((o) => o.order_status === opt.value).length})
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={exportToCSV}
+          disabled={filtered.length === 0}
+          className="btn-outline flex items-center gap-2 text-xs disabled:opacity-40"
+        >
+          <Download size={14} /> Export ke Excel ({filtered.length})
+        </button>
       </div>
 
       {loading ? (
