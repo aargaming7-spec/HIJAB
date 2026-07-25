@@ -112,13 +112,25 @@ export default function Checkout() {
       }))
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
-      setLoading(false)
 
       if (itemsError) {
+        setLoading(false)
         setError(itemsError.message)
         return
       }
 
+      // Kurangi stok produk (aman dari race condition, dihitung di sisi
+      // database — lihat supabase/stock_decrement.sql). Kalau function ini
+      // belum ada di database (misal belum jalanin SQL patch-nya), checkout
+      // tetap lanjut — cuma stok nggak ikut berkurang.
+      const stockItems = orderItems
+        .filter((it) => it.product_id)
+        .map((it) => ({ product_id: it.product_id, color: it.color, size: it.size, quantity: it.quantity }))
+      if (stockItems.length > 0) {
+        await supabase.rpc('decrement_product_stock', { items: stockItems })
+      }
+
+      setLoading(false)
       clearCart()
       navigate(`/order-success?order=${orderNumber}&dummy=1`)
       return
