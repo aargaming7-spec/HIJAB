@@ -5,6 +5,7 @@ import { useProducts } from '../hooks/useProducts.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
 import AdminOrders from '../components/AdminOrders.jsx'
+import AdminContent from '../components/AdminContent.jsx'
 
 const emptyForm = {
   id: null,
@@ -175,10 +176,18 @@ export default function AdminDashboard() {
         >
           Pesanan
         </button>
+        <button
+          onClick={() => setTab('content')}
+          className={`border-b-2 px-1 pb-3 text-sm ${tab === 'content' ? 'border-ink text-ink' : 'border-transparent text-ink/50'}`}
+        >
+          Konten
+        </button>
       </div>
 
       {tab === 'orders' ? (
         <AdminOrders />
+      ) : tab === 'content' ? (
+        <AdminContent />
       ) : (
         <>
 

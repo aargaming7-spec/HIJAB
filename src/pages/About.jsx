@@ -1,18 +1,15 @@
 import Reveal from '../components/Reveal.jsx'
+import { useSiteSettings } from '../hooks/useSiteSettings.js'
 
 export default function About() {
+  const { settings } = useSiteSettings()
   return (
     <div className="container-page py-16 md:py-24">
       <div className="mx-auto max-w-2xl text-center">
         <Reveal>
           <p className="eyebrow mb-3">Tentang Kami</p>
-          <h1 className="font-display text-3xl md:text-4xl">Dibuat untuk dipakai, bukan sekadar dipajang</h1>
-          <p className="mt-6 text-ink/70 leading-relaxed">
-            Alara dimulai dari kebutuhan sederhana: hijab dengan bahan yang benar-benar nyaman dipakai
-            seharian, tanpa mengorbankan tampilan. Kami memilih material secara langsung, menguji jatuh
-            kain dan warna sebelum masuk ke koleksi, dan menjaga setiap produksi dalam jumlah terbatas
-            agar kualitas tetap terjaga.
-          </p>
+          <h1 className="font-display text-3xl md:text-4xl">{settings.about.title}</h1>
+          <p className="mt-6 text-ink/70 leading-relaxed">{settings.about.body}</p>
         </Reveal>
       </div>
 

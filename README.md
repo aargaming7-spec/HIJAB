@@ -72,6 +72,24 @@ Supaya bisa upload foto langsung dari halaman Admin (bukan isi URL manual):
 
 Setelah itu, di form Tambah/Edit Produk akan ada tombol **Upload Foto** — pilih file dari komputer, otomatis ter-upload dan langsung terpasang ke produk. Bisa pilih beberapa foto sekaligus.
 
+## Setup Kelola Konten (Hero, Banner, About, Contact)
+
+Supaya teks & foto di Hero, Promotional Banner, halaman About, dan Contact bisa diubah dari Admin tanpa edit kode:
+
+1. Buka Supabase Dashboard → **SQL Editor** → New query
+2. Copy-paste isi file `supabase/site_settings_schema.sql`, lalu Run
+
+Setelah itu buka `/#/admin` → tab **Konten**. Semua perubahan yang disimpan di situ langsung muncul di website publik. Selama belum diisi, website tetap tampil dengan teks default (tidak akan kosong/error).
+
+## Setup Kelola Konten (Hero, Banner, About, Contact)
+
+Supaya teks & foto di halaman Home (hero, promo banner), About, dan Contact bisa diubah dari Admin tanpa edit kode:
+
+1. Buka Supabase Dashboard → **SQL Editor** → New query
+2. Copy-paste isi file `supabase/site_settings_schema.sql`, lalu Run
+
+Setelah itu buka `/#/admin` → tab **Konten** untuk mengubah teks hero, banner promo, halaman About, dan info Contact. Selama belum diisi, website tetap menampilkan konten default yang sudah ada.
+
 Selama Supabase belum diisi, website tetap jalan normal memakai data contoh lokal, tapi fitur admin tidak aktif.
 
 ## Setup Checkout + Payment Gateway (Midtrans)

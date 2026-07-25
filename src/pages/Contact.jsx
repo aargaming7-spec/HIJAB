@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Mail, MessageCircle, MapPin } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
+import { useSiteSettings } from '../hooks/useSiteSettings.js'
 
 export default function Contact() {
+  const { settings } = useSiteSettings()
   const [submitted, setSubmitted] = useState(false)
 
   function handleSubmit(e) {
@@ -52,21 +54,21 @@ export default function Contact() {
               <Mail size={18} className="mt-0.5 text-mauve-600" />
               <div>
                 <p className="text-sm font-medium">Email</p>
-                <p className="text-sm text-ink/60">hello@alara.co.id</p>
+                <p className="text-sm text-ink/60">{settings.contact.email}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <MessageCircle size={18} className="mt-0.5 text-mauve-600" />
               <div>
                 <p className="text-sm font-medium">WhatsApp</p>
-                <p className="text-sm text-ink/60">+62 812 3456 7890</p>
+                <p className="text-sm text-ink/60">{settings.contact.whatsapp}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
               <MapPin size={18} className="mt-0.5 text-mauve-600" />
               <div>
                 <p className="text-sm font-medium">Studio</p>
-                <p className="text-sm text-ink/60">Bandung, Jawa Barat, Indonesia</p>
+                <p className="text-sm text-ink/60">{settings.contact.address}</p>
               </div>
             </div>
           </div>
