@@ -5,9 +5,7 @@ const priceRanges = [
   { label: 'Di atas Rp 200.000', min: 200000, max: Infinity },
 ]
 
-const colorOptions = ['Black', 'Ivory', 'Dusty Rose', 'Mauve', 'Sand', 'Charcoal', 'Sage', 'Navy']
-
-export default function FilterSidebar({ filters, setFilters, categories, collections }) {
+export default function FilterSidebar({ filters, setFilters, categories, collections, colorOptions = [] }) {
   function toggleValue(key, value) {
     setFilters((prev) => {
       const current = prev[key]

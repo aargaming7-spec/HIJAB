@@ -61,7 +61,16 @@ src/
    - Untuk development lokal: copy `.env.example` menjadi `.env`, isi `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` (ambil dari Supabase Dashboard → Settings → API, bagian **Project URL** dan **anon public key**).
    - Untuk deploy GitHub Pages: buka repo di GitHub → Settings → Secrets and variables → Actions → New repository secret. Tambahkan dua secret: `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY`. Workflow deploy sudah dikonfigurasi untuk otomatis memakainya saat build.
 
-4. **Kelola katalog.** Buka `/#/admin/login` di website, login dengan akun admin yang dibuat di langkah 2. Dari dashboard admin kamu bisa menambah, mengedit, dan menghapus produk — perubahan langsung tersimpan di Supabase dan muncul di halaman Shop/Home.
+4. **Kelola katalog.** Buka `/#/admin/login` di website, login dengan akun admin yang dibuat di langkah 2. Dari dashboard admin kamu bisa menambah, mengedit, dan menghapus produk — perubahan langsung tersimpan di Supabase dan muncul di halaman Shop/Home. Kategori, koleksi, dan pilihan warna di halaman Shop otomatis ikut update sesuai data produk yang ada — tidak perlu diedit manual di kode.
+
+## Setup Upload Foto Produk (Supabase Storage)
+
+Supaya bisa upload foto langsung dari halaman Admin (bukan isi URL manual):
+
+1. Buka Supabase Dashboard → **SQL Editor** → New query
+2. Copy-paste isi file `supabase/storage_setup.sql`, lalu Run
+
+Setelah itu, di form Tambah/Edit Produk akan ada tombol **Upload Foto** — pilih file dari komputer, otomatis ter-upload dan langsung terpasang ke produk. Bisa pilih beberapa foto sekaligus.
 
 Selama Supabase belum diisi, website tetap jalan normal memakai data contoh lokal, tapi fitur admin tidak aktif.
 

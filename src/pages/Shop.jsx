@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
-import { categories, collections } from '../data/products.js'
 import { useProducts } from '../hooks/useProducts.js'
 import FilterSidebar from '../components/FilterSidebar.jsx'
 import ProductGrid from '../components/ProductGrid.jsx'
@@ -27,6 +26,22 @@ export default function Shop() {
   const [filters, setFilters] = useState(emptyFilters)
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest')
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  // Kategori & koleksi diambil otomatis dari produk yang benar-benar ada
+  // (bukan hardcode) — begitu admin tambah produk dengan koleksi baru,
+  // filter ini otomatis ikut update.
+  const categories = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
+    [products]
+  )
+  const collections = useMemo(
+    () => [...new Set(products.map((p) => p.collection).filter(Boolean))].sort(),
+    [products]
+  )
+  const colorOptions = useMemo(
+    () => [...new Set(products.flatMap((p) => p.colors || []))].sort(),
+    [products]
+  )
 
   useEffect(() => {
     const sortParam = searchParams.get('sort')
@@ -73,7 +88,7 @@ export default function Shop() {
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[240px_1fr]">
         <aside className="hidden lg:block">
-          <FilterSidebar filters={filters} setFilters={setFilters} categories={categories} collections={collections} />
+          <FilterSidebar filters={filters} setFilters={setFilters} categories={categories} collections={collections} colorOptions={colorOptions} />
         </aside>
 
         <div>
@@ -127,7 +142,7 @@ export default function Shop() {
                 <X size={20} />
               </button>
             </div>
-            <FilterSidebar filters={filters} setFilters={setFilters} categories={categories} collections={collections} />
+            <FilterSidebar filters={filters} setFilters={setFilters} categories={categories} collections={collections} colorOptions={colorOptions} />
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(false)}

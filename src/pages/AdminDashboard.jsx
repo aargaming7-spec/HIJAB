@@ -32,6 +32,37 @@ export default function AdminDashboard() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
+  async function handleFileUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading(true)
+    setUploadError('')
+
+    const uploadedUrls = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage.from('products').upload(path, file)
+      if (error) {
+        setUploadError(error.message)
+        continue
+      }
+      const { data } = supabase.storage.from('products').getPublicUrl(path)
+      uploadedUrls.push(data.publicUrl)
+    }
+
+    setUploading(false)
+    if (uploadedUrls.length) {
+      setForm((prev) => {
+        const existing = prev.images.split(',').map((s) => s.trim()).filter(Boolean)
+        return { ...prev, images: [...existing, ...uploadedUrls].join(', ') }
+      })
+    }
+    e.target.value = ''
+  }
 
   function openCreate() {
     setForm(emptyForm)
@@ -247,7 +278,47 @@ export default function AdminDashboard() {
                 <input type="number" placeholder="Harga diskon (opsional)" className="input-field" value={form.discount_price} onChange={(e) => setForm({ ...form, discount_price: e.target.value })} />
               </div>
 
-              <input placeholder="URL foto, pisahkan dengan koma" className="input-field" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} />
+              <div>
+                <label className="mb-1.5 block text-xs uppercase tracking-widest2 text-ink/50">Foto Produk</label>
+                <div className="flex flex-wrap gap-2">
+                  {form.images
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((url, i) => (
+                      <div key={i} className="relative h-16 w-14">
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const list = form.images.split(',').map((s) => s.trim()).filter(Boolean)
+                            list.splice(i, 1)
+                            setForm({ ...form, images: list.join(', ') })
+                          }}
+                          className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-paper"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-line px-3 py-2 text-xs text-ink/70 hover:border-mauve-400">
+                  {uploading ? 'Mengunggah...' : 'Upload Foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={handleFileUpload}
+                  />
+                </label>
+                {uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
+                <p className="mt-2 text-[11px] text-ink/40">
+                  Atau tempel URL foto manual (pisahkan dengan koma) di bawah ini:
+                </p>
+                <input placeholder="URL foto, pisahkan dengan koma" className="input-field mt-1" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} />
+              </div>
               <input placeholder="Warna, pisahkan dengan koma" className="input-field" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} />
               <input placeholder="Ukuran, pisahkan dengan koma (opsional)" className="input-field" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} />
               <input placeholder="Material" className="input-field" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />
