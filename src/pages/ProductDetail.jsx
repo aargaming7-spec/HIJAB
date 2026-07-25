@@ -5,6 +5,7 @@ import { useProducts } from '../hooks/useProducts.js'
 import { formatIDR } from '../utils/format.js'
 import { useCart } from '../context/CartContext.jsx'
 import { useWishlist } from '../context/WishlistContext.jsx'
+import { getVariantStock, getTotalStock } from '../utils/variants.js'
 import StarRating from '../components/StarRating.jsx'
 import ProductGrid from '../components/ProductGrid.jsx'
 
@@ -31,14 +32,24 @@ export default function ProductDetail() {
   const { toggleWishlist, isWishlisted } = useWishlist()
 
   const [activeImage, setActiveImage] = useState(0)
-  const [color, setColor] = useState(product?.colors?.[0] ?? null)
-  const [size, setSize] = useState(product?.sizes?.[0] ?? null)
+  const [color, setColor] = useState(null)
+  const [size, setSize] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [tab, setTab] = useState('details')
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
+
+  // Produk baru kebaca setelah data dari Supabase selesai loading (async),
+  // jadi pilihan warna/ukuran default di-set di sini, bukan di useState awal.
+  useEffect(() => {
+    if (product) {
+      setColor(product.colors?.[0] ?? null)
+      setSize(product.sizes?.[0] ?? null)
+      setQuantity(1)
+    }
+  }, [product?.id])
 
   if (!product) {
     return (
@@ -55,6 +66,22 @@ export default function ProductDetail() {
 
   const hasDiscount = Boolean(product.discountPrice)
   const wishlisted = isWishlisted(product.id)
+  const totalStock = getTotalStock(product)
+  const variantStock = getVariantStock(product, color, size)
+  const hasVariants = product.variants && product.variants.length > 0
+
+  function isColorAvailable(c) {
+    if (!hasVariants) return true
+    if (!product.sizes || product.sizes.length === 0) {
+      return getVariantStock(product, c, null) > 0
+    }
+    return product.sizes.some((s) => getVariantStock(product, c, s) > 0)
+  }
+
+  function isSizeAvailable(s) {
+    if (!hasVariants) return true
+    return getVariantStock(product, color, s) > 0
+  }
 
   const related = products
     .filter((p) => p.id !== product.id && p.collection === product.collection)
@@ -113,7 +140,7 @@ export default function ProductDetail() {
           <div className="mt-3 flex items-center gap-3">
             <StarRating value={product.rating} />
             <span className="text-xs text-ink/40">·</span>
-            <span className="text-xs text-ink/50">{product.stock > 0 ? 'Tersedia' : 'Stok habis'}</span>
+            <span className="text-xs text-ink/50">{totalStock > 0 ? 'Tersedia' : 'Stok habis'}</span>
           </div>
 
           <div className="mt-5 flex items-center gap-3">
@@ -135,17 +162,25 @@ export default function ProductDetail() {
                 Warna {color && <span className="text-ink">— {color}</span>}
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.colors.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className={`border px-3 py-1.5 text-xs transition-colors duration-250 ${
-                      color === c ? 'border-ink bg-ink text-paper' : 'border-line text-ink/70 hover:border-ink'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {product.colors.map((c) => {
+                  const available = isColorAvailable(c)
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => available && setColor(c)}
+                      disabled={!available}
+                      className={`border px-3 py-1.5 text-xs transition-colors duration-250 ${
+                        color === c
+                          ? 'border-ink bg-ink text-paper'
+                          : available
+                          ? 'border-line text-ink/70 hover:border-ink'
+                          : 'border-line text-ink/30 line-through cursor-not-allowed'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -154,20 +189,36 @@ export default function ProductDetail() {
             <div className="mt-6">
               <p className="mb-2.5 text-xs uppercase tracking-wide text-ink/50">Ukuran</p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSize(s)}
-                    className={`h-9 min-w-[2.25rem] border px-3 text-xs transition-colors duration-250 ${
-                      size === s ? 'border-ink bg-ink text-paper' : 'border-line text-ink/70 hover:border-ink'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {product.sizes.map((s) => {
+                  const available = isSizeAvailable(s)
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => available && setSize(s)}
+                      disabled={!available}
+                      className={`h-9 min-w-[2.25rem] border px-3 text-xs transition-colors duration-250 ${
+                        size === s
+                          ? 'border-ink bg-ink text-paper'
+                          : available
+                          ? 'border-line text-ink/70 hover:border-ink'
+                          : 'border-line text-ink/30 line-through cursor-not-allowed'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
+
+          <div className="mt-2 text-xs text-ink/50">
+            {hasVariants
+              ? variantStock > 0
+                ? `Stok tersedia: ${variantStock}`
+                : 'Kombinasi warna/ukuran ini sedang habis'
+              : null}
+          </div>
 
           <div className="mt-7 flex items-center gap-4">
             <div className="flex items-center border border-line">
@@ -180,7 +231,7 @@ export default function ProductDetail() {
               </button>
               <span className="w-10 text-center text-sm">{quantity}</span>
               <button
-                onClick={() => setQuantity((q) => q + 1)}
+                onClick={() => setQuantity((q) => Math.min(hasVariants ? variantStock : totalStock, q + 1))}
                 className="grid h-11 w-11 place-items-center hover:bg-mist"
                 aria-label="Tambah jumlah"
               >
@@ -199,10 +250,10 @@ export default function ProductDetail() {
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <button onClick={handleAddToCart} disabled={product.stock === 0} className="btn-outline flex-1">
+            <button onClick={handleAddToCart} disabled={hasVariants ? variantStock === 0 : totalStock === 0} className="btn-outline flex-1 disabled:opacity-40">
               Add to Cart
             </button>
-            <button onClick={handleBuyNow} disabled={product.stock === 0} className="btn-primary flex-1">
+            <button onClick={handleBuyNow} disabled={hasVariants ? variantStock === 0 : totalStock === 0} className="btn-primary flex-1 disabled:opacity-40">
               Buy Now
             </button>
           </div>

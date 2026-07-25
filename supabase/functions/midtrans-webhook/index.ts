@@ -55,17 +55,33 @@ Deno.serve(async (req) => {
     if (paymentStatus === 'paid' && order) {
       const { data: items } = await supabase
         .from('order_items')
-        .select('product_id, quantity')
+        .select('product_id, color, size, quantity')
         .eq('order_id', order.id)
 
       for (const item of items || []) {
         if (!item.product_id) continue
         const { data: product } = await supabase
           .from('products')
-          .select('stock')
+          .select('stock, variants')
           .eq('id', item.product_id)
           .single()
-        if (product) {
+        if (!product) continue
+
+        if (product.variants && product.variants.length > 0) {
+          // Produk pakai stok per-varian: kurangi hanya varian warna/ukuran yang dipesan
+          const updatedVariants = product.variants.map((v) => {
+            if ((v.color || null) === (item.color || null) && (v.size || null) === (item.size || null)) {
+              return { ...v, stock: Math.max(0, (v.stock || 0) - item.quantity) }
+            }
+            return v
+          })
+          const newTotal = updatedVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
+          await supabase
+            .from('products')
+            .update({ variants: updatedVariants, stock: newTotal })
+            .eq('id', item.product_id)
+        } else {
+          // Produk lama tanpa data varian: kurangi stok umum seperti biasa
           await supabase
             .from('products')
             .update({ stock: Math.max(0, product.stock - item.quantity) })

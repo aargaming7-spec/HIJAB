@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
 import AdminOrders from '../components/AdminOrders.jsx'
 import AdminContent from '../components/AdminContent.jsx'
+import VariantStockEditor from '../components/VariantStockEditor.jsx'
 
 const emptyForm = {
   id: null,
@@ -20,6 +21,7 @@ const emptyForm = {
   material: '',
   description: '',
   stock: '',
+  variants: [], // [{ color, size, stock }]
   rating: '',
   is_best_seller: false,
   is_new_arrival: false,
@@ -84,6 +86,7 @@ export default function AdminDashboard() {
       material: p.material || '',
       description: p.description || '',
       stock: p.stock,
+      variants: p.variants || [],
       rating: p.rating,
       is_best_seller: p.isBestSeller,
       is_new_arrival: p.isNewArrival,
@@ -101,6 +104,11 @@ export default function AdminDashboard() {
     }
 
     setSaving(true)
+    const colorList = form.colors.split(',').map((s) => s.trim()).filter(Boolean)
+    const sizeList = form.sizes ? form.sizes.split(',').map((s) => s.trim()).filter(Boolean) : []
+    const usesVariants = colorList.length > 0
+    const totalVariantStock = form.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+
     const payload = {
       name: form.name,
       category: form.category,
@@ -108,11 +116,14 @@ export default function AdminDashboard() {
       price: Number(form.price) || 0,
       discount_price: form.discount_price === '' ? null : Number(form.discount_price),
       images: form.images.split(',').map((s) => s.trim()).filter(Boolean),
-      colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
-      sizes: form.sizes ? form.sizes.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      colors: colorList,
+      sizes: sizeList,
       material: form.material,
       description: form.description,
-      stock: Number(form.stock) || 0,
+      stock: usesVariants ? totalVariantStock : Number(form.stock) || 0,
+      variants: usesVariants
+        ? form.variants.map((v) => ({ color: v.color, size: v.size, stock: Number(v.stock) || 0 }))
+        : [],
       rating: Number(form.rating) || 0,
       is_best_seller: form.is_best_seller,
       is_new_arrival: form.is_new_arrival,
@@ -330,11 +341,23 @@ export default function AdminDashboard() {
               </div>
               <input placeholder="Warna, pisahkan dengan koma" className="input-field" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} />
               <input placeholder="Ukuran, pisahkan dengan koma (opsional)" className="input-field" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} />
+
+              {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length > 0 && (
+                <VariantStockEditor
+                  colors={form.colors.split(',').map((s) => s.trim()).filter(Boolean)}
+                  sizes={form.sizes.split(',').map((s) => s.trim()).filter(Boolean)}
+                  variants={form.variants}
+                  onChange={(variants) => setForm((prev) => ({ ...prev, variants }))}
+                />
+              )}
+
               <input placeholder="Material" className="input-field" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />
               <textarea placeholder="Deskripsi" rows={3} className="input-field resize-none" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
 
               <div className="grid grid-cols-2 gap-3">
-                <input required type="number" placeholder="Stok" className="input-field" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length === 0 && (
+                  <input required type="number" placeholder="Stok" className="input-field" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+                )}
                 <input type="number" step="0.1" placeholder="Rating (0-5)" className="input-field" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} />
               </div>
 
