@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, NavLink } from 'react-router-dom'
 import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react'
 import { useCart } from '../context/CartContext'
@@ -166,58 +167,67 @@ export default function Navbar({ onSearchOpen }) {
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      <div
-        className={`fixed inset-0 z-50 md:hidden transition-opacity duration-250 ${
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
+      {/* Mobile drawer — dirender lewat portal ke document.body, di luar header
+          yang pakai sticky + backdrop-blur. Kalau drawer ini jadi anak header,
+          di Safari iOS kadang muncul bug: layer di belakang (gambar hero) numpang
+          tembus ke atas drawer pas animasi buka/tutup. Render lewat portal +
+          background solid (inline style, bukan cuma class) supaya benar-benar
+          nutup penuh nggak peduli device/browser-nya. */}
+      {createPortal(
         <div
-          className={`absolute left-0 top-0 h-full w-[82%] max-w-xs bg-paper transition-transform duration-350 ease-out ${
-            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-0 z-[100] md:hidden transition-opacity duration-250 ${
+            mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
-          <div className="flex h-[76px] items-center justify-between px-5 border-b border-line">
-            <span className="font-display text-lg tracking-widest2 uppercase">Alara</span>
-            <button onClick={() => setMobileOpen(false)} aria-label="Tutup menu">
-              <X size={22} />
-            </button>
-          </div>
-          <nav className="flex flex-col px-5 py-6 gap-1 text-[15px]">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                to={link.to}
-                onClick={() => setMobileOpen(false)}
-                className="py-3 border-b border-line/70"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="pt-4">
-              <p className="eyebrow mb-3">Shop by Category</p>
-              {Object.entries(shopMenu).map(([group, items]) => (
-                <div key={group} className="mb-4">
-                  <p className="text-sm text-ink/50 mb-2">{group}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((item) => (
-                      <Link
-                        key={item}
-                        to={`/shop?collection=${encodeURIComponent(item)}`}
-                        onClick={() => setMobileOpen(false)}
-                        className="text-xs border border-line px-3 py-1.5"
-                      >
-                        {item}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
+          <div
+            style={{ backgroundColor: '#FFFFFF' }}
+            className={`absolute left-0 top-0 h-full w-[82%] max-w-xs overflow-y-auto transition-transform duration-350 ease-out ${
+              mobileOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            <div className="flex h-[76px] items-center justify-between px-5 border-b border-line">
+              <span className="font-display text-lg tracking-widest2 uppercase">Alara</span>
+              <button onClick={() => setMobileOpen(false)} aria-label="Tutup menu">
+                <X size={22} />
+              </button>
             </div>
-          </nav>
-        </div>
-      </div>
+            <nav className="flex flex-col px-5 py-6 gap-1 text-[15px]">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="py-3 border-b border-line/70"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="pt-4">
+                <p className="eyebrow mb-3">Shop by Category</p>
+                {Object.entries(shopMenu).map(([group, items]) => (
+                  <div key={group} className="mb-4">
+                    <p className="text-sm text-ink/50 mb-2">{group}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((item) => (
+                        <Link
+                          key={item}
+                          to={`/shop?collection=${encodeURIComponent(item)}`}
+                          onClick={() => setMobileOpen(false)}
+                          className="text-xs border border-line px-3 py-1.5"
+                        >
+                          {item}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </div>,
+        document.body
+      )}
     </header>
   )
 }

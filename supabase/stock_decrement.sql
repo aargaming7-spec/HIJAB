@@ -14,6 +14,11 @@
 -- Jalankan di Supabase Dashboard -> SQL Editor -> New query -> Run
 -- ============================================================
 
+-- Kolom "terjual" yang ditampilkan di katalog (mirip Shopee), otomatis
+-- bertambah tiap ada pesanan masuk lewat function di bawah.
+alter table public.products
+  add column if not exists sold_count integer not null default 0;
+
 create or replace function public.decrement_product_stock(items jsonb)
 returns jsonb
 language plpgsql
@@ -27,6 +32,7 @@ declare
   new_variants jsonb;
   v_stock int;
   item_qty int;
+  item_ok boolean;
   insufficient jsonb := '[]'::jsonb;
 begin
   for item in select * from jsonb_array_elements(items)
@@ -45,6 +51,7 @@ begin
     end if;
 
     item_qty := coalesce((item->>'quantity')::int, 0);
+    item_ok := true;
 
     if product.variants is not null and jsonb_array_length(product.variants) > 0 then
       new_variants := '[]'::jsonb;
@@ -54,6 +61,7 @@ begin
            and coalesce(v->>'size', '') = coalesce(item->>'size', '') then
           v_stock := coalesce((v->>'stock')::int, 0);
           if v_stock < item_qty then
+            item_ok := false;
             insufficient := insufficient || jsonb_build_object(
               'product_id', item->>'product_id', 'color', item->>'color', 'size', item->>'size'
             );
@@ -66,13 +74,14 @@ begin
 
       update public.products
       set variants = new_variants,
-          stock = (select coalesce(sum((vv->>'stock')::int), 0) from jsonb_array_elements(new_variants) vv)
+          stock = (select coalesce(sum((vv->>'stock')::int), 0) from jsonb_array_elements(new_variants) vv),
+          sold_count = sold_count + case when item_ok then item_qty else 0 end
       where id = product.id;
     else
       if product.stock < item_qty then
         insufficient := insufficient || jsonb_build_object('product_id', item->>'product_id');
       else
-        update public.products set stock = stock - item_qty where id = product.id;
+        update public.products set stock = stock - item_qty, sold_count = sold_count + item_qty where id = product.id;
       end if;
     end if;
   end loop;

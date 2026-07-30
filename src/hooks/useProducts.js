@@ -18,6 +18,7 @@ function mapRow(row) {
     material: row.material || '',
     description: row.description || '',
     stock: row.stock ?? 0,
+    soldCount: row.sold_count ?? 0,
     variants: Array.isArray(row.variants) ? row.variants : [],
     rating: row.rating ?? 0,
     isBestSeller: row.is_best_seller || false,

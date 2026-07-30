@@ -74,7 +74,14 @@ export default function ProductCard({ product }) {
               <span className="text-sm text-ink/80">{formatIDR(product.price)}</span>
             )}
           </div>
-          <StarRating value={product.rating} />
+          <div className="flex items-center gap-2 text-xs text-ink/50">
+            <StarRating value={product.rating} />
+            <span>·</span>
+            <span>Terjual {product.soldCount ?? 0}</span>
+          </div>
+          <p className={`text-[11px] ${product.stock > 0 ? 'text-ink/40' : 'text-red-500'}`}>
+            {product.stock > 0 ? `Stok ${product.stock}` : 'Stok habis'}
+          </p>
         </div>
       </Link>
     </div>

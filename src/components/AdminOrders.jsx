@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Download } from 'lucide-react'
+import { X, Download, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
 
@@ -117,6 +117,30 @@ export default function AdminOrders() {
     URL.revokeObjectURL(url)
   }
 
+  async function handleDelete(order) {
+    const ok = window.confirm(
+      `Hapus pesanan ${order.order_number}? Tindakan ini tidak bisa dibatalkan.`
+    )
+    if (!ok) return
+
+    setSaving(true)
+    // Hapus item pesanan dulu (foreign key ke orders), baru pesanannya.
+    const { error: itemsError } = await supabase.from('order_items').delete().eq('order_id', order.id)
+    if (itemsError) {
+      setSaving(false)
+      alert(itemsError.message)
+      return
+    }
+    const { error } = await supabase.from('orders').delete().eq('id', order.id)
+    setSaving(false)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setSelected(null)
+    await refresh()
+  }
+
   async function handleUpdate(order, patch) {
     setSaving(true)
     const { error } = await supabase.from('orders').update(patch).eq('id', order.id)
@@ -198,9 +222,19 @@ export default function AdminOrders() {
                     {new Date(o.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => setSelected(o)} className="text-xs text-mauve-600 underline underline-offset-4">
-                      Detail
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button onClick={() => setSelected(o)} className="text-xs text-mauve-600 underline underline-offset-4">
+                        Detail
+                      </button>
+                      <button
+                        onClick={() => handleDelete(o)}
+                        aria-label="Hapus pesanan"
+                        title="Hapus pesanan"
+                        className="text-ink/40 hover:text-red-600 transition-colors duration-250"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -220,9 +254,18 @@ export default function AdminOrders() {
                   {new Date(selected.created_at).toLocaleString('id-ID')}
                 </p>
               </div>
-              <button onClick={() => setSelected(null)} aria-label="Tutup">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDelete(selected)}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 disabled:opacity-40"
+                >
+                  <Trash2 size={14} /> Hapus
+                </button>
+                <button onClick={() => setSelected(null)} aria-label="Tutup">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="mb-5 space-y-1 text-sm">

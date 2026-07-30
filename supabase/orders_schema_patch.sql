@@ -15,3 +15,11 @@ create policy "Authenticated can delete order items"
   on public.order_items for delete
   to authenticated
   using (true);
+
+-- Dibutuhkan supaya admin bisa hapus pesanan (tombol hapus di Admin Dashboard).
+-- order_items ikut kehapus otomatis (kolom order_id sudah "on delete cascade"),
+-- tapi tetap butuh policy delete di atas supaya cascade-nya tidak diblok RLS.
+create policy "Authenticated can delete orders"
+  on public.orders for delete
+  to authenticated
+  using (true);
