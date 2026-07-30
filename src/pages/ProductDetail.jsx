@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext.jsx'
 import { useWishlist } from '../context/WishlistContext.jsx'
 import { getVariantStock, getTotalStock } from '../utils/variants.js'
 import StarRating from '../components/StarRating.jsx'
+import ReviewsList from '../components/ReviewsList.jsx'
 import ProductGrid from '../components/ProductGrid.jsx'
 
 const tabs = [
@@ -14,12 +15,6 @@ const tabs = [
   { key: 'care', label: 'Cara Perawatan' },
   { key: 'shipping', label: 'Pengiriman' },
   { key: 'reviews', label: 'Review' },
-]
-
-const dummyReviews = [
-  { name: 'Salsabila R.', rating: 5, text: 'Bahannya adem dan jatuhnya bagus, sesuai foto.' },
-  { name: 'Putri A.', rating: 4, text: 'Warnanya sedikit lebih gelap dari foto tapi tetap suka.' },
-  { name: 'Nadia F.', rating: 5, text: 'Repeat order, kualitas konsisten dari awal beli.' },
 ]
 
 export default function ProductDetail() {
@@ -50,6 +45,18 @@ export default function ProductDetail() {
       setQuantity(1)
     }
   }, [product?.id])
+
+  // Kalau warna dipilih punya set foto sendiri (variantImages), tampilkan
+  // foto itu. Kalau tidak ada foto khusus untuk warna tsb, fallback ke foto
+  // umum produk supaya produk lama/tanpa foto per-warna tetap tampil normal.
+  const galleryImages =
+    (color && product?.variantImages?.[color]?.length ? product.variantImages[color] : null) ||
+    product?.images ||
+    []
+
+  useEffect(() => {
+    setActiveImage(0)
+  }, [color])
 
   if (!product) {
     return (
@@ -111,14 +118,14 @@ export default function ProductDetail() {
         <div>
           <div className="aspect-[4/5] overflow-hidden bg-mist">
             <img
-              src={product.images[activeImage]}
+              src={galleryImages[activeImage] || galleryImages[0]}
               alt={product.name}
               className="h-full w-full object-cover"
             />
           </div>
-          {product.images.length > 1 && (
+          {galleryImages.length > 1 && (
             <div className="mt-3 flex gap-3">
-              {product.images.map((img, i) => (
+              {galleryImages.map((img, i) => (
                 <button
                   key={img}
                   onClick={() => setActiveImage(i)}
@@ -307,19 +314,7 @@ export default function ProductDetail() {
               <li>Estimasi tiba 1–3 hari untuk area Jabodetabek, 2–6 hari untuk luar Jawa.</li>
             </ul>
           )}
-          {tab === 'reviews' && (
-            <div className="space-y-6">
-              {dummyReviews.map((r) => (
-                <div key={r.name} className="border-b border-line pb-5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-ink">{r.name}</p>
-                    <StarRating value={r.rating} />
-                  </div>
-                  <p className="mt-2 text-ink/60">{r.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          {tab === 'reviews' && <ReviewsList productId={product.id} />}
         </div>
       </div>
 

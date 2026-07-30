@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
 import AdminOrders from '../components/AdminOrders.jsx'
 import AdminContent from '../components/AdminContent.jsx'
+import AdminReviews from '../components/AdminReviews.jsx'
 import VariantStockEditor from '../components/VariantStockEditor.jsx'
 import localProducts from '../data/products.js'
 
@@ -17,6 +18,7 @@ const emptyForm = {
   price: '',
   discount_price: '',
   images: '',
+  variantImages: {}, // { [color]: string[] }
   colors: '',
   sizes: '',
   material: '',
@@ -94,6 +96,48 @@ export default function AdminDashboard() {
     e.target.value = ''
   }
 
+  async function handleVariantFileUpload(color, e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading(true)
+    setUploadError('')
+
+    const uploadedUrls = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage.from('products').upload(path, file)
+      if (error) {
+        setUploadError(error.message)
+        continue
+      }
+      const { data } = supabase.storage.from('products').getPublicUrl(path)
+      uploadedUrls.push(data.publicUrl)
+    }
+
+    setUploading(false)
+    if (uploadedUrls.length) {
+      setForm((prev) => ({
+        ...prev,
+        variantImages: {
+          ...prev.variantImages,
+          [color]: [...(prev.variantImages[color] || []), ...uploadedUrls],
+        },
+      }))
+    }
+    e.target.value = ''
+  }
+
+  function removeVariantImage(color, index) {
+    setForm((prev) => {
+      const list = [...(prev.variantImages[color] || [])]
+      list.splice(index, 1)
+      const next = { ...prev.variantImages, [color]: list }
+      if (list.length === 0) delete next[color]
+      return { ...prev, variantImages: next }
+    })
+  }
+
   function openCreate() {
     setForm(emptyForm)
     setFormOpen(true)
@@ -108,6 +152,7 @@ export default function AdminDashboard() {
       price: p.price,
       discount_price: p.discountPrice ?? '',
       images: (p.images || []).join(', '),
+      variantImages: p.variantImages || {},
       colors: (p.colors || []).join(', '),
       sizes: (p.sizes || []).join(', '),
       material: p.material || '',
@@ -143,6 +188,9 @@ export default function AdminDashboard() {
       price: Number(form.price) || 0,
       discount_price: form.discount_price === '' ? null : Number(form.discount_price),
       images: form.images.split(',').map((s) => s.trim()).filter(Boolean),
+      variant_images: Object.fromEntries(
+        Object.entries(form.variantImages).filter(([c, list]) => colorList.includes(c) && list?.length)
+      ),
       colors: colorList,
       sizes: sizeList,
       material: form.material,
@@ -220,12 +268,20 @@ export default function AdminDashboard() {
         >
           Konten
         </button>
+        <button
+          onClick={() => setTab('reviews')}
+          className={`border-b-2 px-1 pb-3 text-sm ${tab === 'reviews' ? 'border-ink text-ink' : 'border-transparent text-ink/50'}`}
+        >
+          Review
+        </button>
       </div>
 
       {tab === 'orders' ? (
         <AdminOrders />
       ) : tab === 'content' ? (
         <AdminContent />
+      ) : tab === 'reviews' ? (
+        <AdminReviews />
       ) : (
         <>
 
@@ -375,6 +431,50 @@ export default function AdminDashboard() {
               </div>
               <input placeholder="Warna, pisahkan dengan koma" className="input-field" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} />
               <input placeholder="Ukuran, pisahkan dengan koma (opsional)" className="input-field" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} />
+
+              {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length > 0 && (
+                <div className="border border-line p-3">
+                  <label className="mb-2 block text-xs uppercase tracking-widest2 text-ink/50">
+                    Foto per Warna (opsional)
+                  </label>
+                  <p className="mb-3 text-[11px] text-ink/40">
+                    Kalau warna tertentu tidak diisi foto khusus, produk akan pakai "Foto Produk" umum di atas.
+                  </p>
+                  <div className="space-y-4">
+                    {form.colors.split(',').map((s) => s.trim()).filter(Boolean).map((c) => (
+                      <div key={c}>
+                        <p className="mb-1.5 text-xs text-ink/70">{c}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(form.variantImages[c] || []).map((url, i) => (
+                            <div key={i} className="relative h-16 w-14">
+                              <img src={url} alt="" className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => removeVariantImage(c, i)}
+                                className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-paper"
+                              >
+                                <X size={11} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-line px-3 py-1.5 text-[11px] text-ink/70 hover:border-mauve-400">
+                          {uploading ? 'Mengunggah...' : `Upload Foto untuk ${c}`}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={uploading}
+                            onChange={(e) => handleVariantFileUpload(c, e)}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {uploadError && <p className="mt-2 text-xs text-red-600">{uploadError}</p>}
+                </div>
+              )}
 
               {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length > 0 && (
                 <VariantStockEditor

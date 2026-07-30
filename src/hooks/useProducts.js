@@ -13,6 +13,7 @@ function mapRow(row) {
     price: Number(row.price) || 0,
     discountPrice: row.discount_price != null ? Number(row.discount_price) : null,
     images: row.images?.length ? row.images : ['https://picsum.photos/seed/placeholder/800/1000'],
+    variantImages: row.variant_images && typeof row.variant_images === 'object' ? row.variant_images : {},
     colors: row.colors || [],
     sizes: row.sizes?.length ? row.sizes : null,
     material: row.material || '',
