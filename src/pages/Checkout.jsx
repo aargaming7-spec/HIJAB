@@ -127,7 +127,16 @@ export default function Checkout() {
         .filter((it) => it.product_id)
         .map((it) => ({ product_id: it.product_id, color: it.color, size: it.size, quantity: it.quantity }))
       if (stockItems.length > 0) {
-        await supabase.rpc('decrement_product_stock', { items: stockItems })
+        const { error: stockError, data: stockResult } = await supabase.rpc('decrement_product_stock', {
+          items: stockItems,
+        })
+        if (stockError) {
+          // Sengaja tidak menghentikan checkout (pesanan sudah kesimpan),
+          // tapi errornya dicetak di console biar kelihatan pas debugging.
+          console.error('[decrement_product_stock] gagal:', stockError.message, stockError)
+        } else {
+          console.log('[decrement_product_stock] sukses. Item stok kurang:', stockResult)
+        }
       }
 
       setLoading(false)

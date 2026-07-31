@@ -124,6 +124,13 @@ export default function AdminOrders() {
     if (!ok) return
 
     setSaving(true)
+    // Kembalikan stok & terjual dulu SEBELUM order_items dihapus (function
+    // restore-nya butuh baca isi order_items). Aman dipanggil walau pesanan
+    // ini sebelumnya sudah pernah dibatalkan/di-restore — nggak akan dobel.
+    const { error: restoreError } = await supabase.rpc('restore_order_stock', { p_order_id: order.id })
+    if (restoreError) {
+      console.error('[restore_order_stock] gagal:', restoreError.message)
+    }
     // Hapus item pesanan dulu (foreign key ke orders), baru pesanannya.
     const { error: itemsError } = await supabase.from('order_items').delete().eq('order_id', order.id)
     if (itemsError) {
@@ -131,10 +138,20 @@ export default function AdminOrders() {
       alert(itemsError.message)
       return
     }
-    const { error } = await supabase.from('orders').delete().eq('id', order.id)
+    // .select() dipakai supaya kita tahu beneran ada baris yang terhapus.
+    // Kalau izin (RLS) belum diaktifkan, Supabase tidak melempar error — dia
+    // cuma diam-diam menghapus 0 baris. Tanpa .select() ini, kita nggak akan
+    // pernah tahu bedanya "berhasil" dan "diam-diam gagal".
+    const { data: deletedRows, error } = await supabase.from('orders').delete().eq('id', order.id).select('id')
     setSaving(false)
     if (error) {
       alert(error.message)
+      return
+    }
+    if (!deletedRows || deletedRows.length === 0) {
+      alert(
+        'Pesanan tidak terhapus — kemungkinan izin (RLS policy) DELETE untuk tabel "orders" belum diaktifkan di Supabase. Jalankan SQL patch-nya di SQL Editor dulu.'
+      )
       return
     }
     setSelected(null)
@@ -144,11 +161,21 @@ export default function AdminOrders() {
   async function handleUpdate(order, patch) {
     setSaving(true)
     const { error } = await supabase.from('orders').update(patch).eq('id', order.id)
-    setSaving(false)
     if (error) {
+      setSaving(false)
       alert(error.message)
       return
     }
+    // Kalau status diubah jadi "Dibatalkan", kembalikan stok & terjual
+    // seperti sebelum pesanan ini dibuat. Function ini aman dipanggil
+    // berkali-kali (nggak akan dobel restore) — lihat supabase/restore_stock.sql.
+    if (patch.order_status === 'cancelled') {
+      const { error: restoreError } = await supabase.rpc('restore_order_stock', { p_order_id: order.id })
+      if (restoreError) {
+        console.error('[restore_order_stock] gagal:', restoreError.message)
+      }
+    }
+    setSaving(false)
     await refresh()
     setSelected((prev) => (prev ? { ...prev, ...patch } : prev))
   }
