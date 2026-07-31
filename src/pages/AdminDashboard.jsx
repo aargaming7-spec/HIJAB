@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useProducts } from '../hooks/useProducts.js'
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js'
 import { formatIDR } from '../utils/format.js'
+import { compressImages } from '../utils/imageCompress.js'
 import AdminOrders from '../components/AdminOrders.jsx'
 import AdminContent from '../components/AdminContent.jsx'
 import AdminReviews from '../components/AdminReviews.jsx'
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [compressStats, setCompressStats] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
 
@@ -72,9 +74,14 @@ export default function AdminDashboard() {
     if (!files.length) return
     setUploading(true)
     setUploadError('')
+    setCompressStats('')
+
+    const originalSize = files.reduce((sum, f) => sum + f.size, 0)
+    const compressedFiles = await compressImages(files, { maxWidth: 1200, quality: 0.8 })
+    const compressedSize = compressedFiles.reduce((sum, f) => sum + f.size, 0)
 
     const uploadedUrls = []
-    for (const file of files) {
+    for (const file of compressedFiles) {
       const ext = file.name.split('.').pop()
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
       const { error } = await supabase.storage.from('products').upload(path, file)
@@ -88,6 +95,10 @@ export default function AdminDashboard() {
 
     setUploading(false)
     if (uploadedUrls.length) {
+      const savedPct = originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0
+      setCompressStats(
+        `Dikompres dari ${(originalSize / 1024 / 1024).toFixed(1)}MB → ${(compressedSize / 1024 / 1024).toFixed(1)}MB (hemat ${savedPct}%)`
+      )
       setForm((prev) => {
         const existing = prev.images.split(',').map((s) => s.trim()).filter(Boolean)
         return { ...prev, images: [...existing, ...uploadedUrls].join(', ') }
@@ -101,9 +112,12 @@ export default function AdminDashboard() {
     if (!files.length) return
     setUploading(true)
     setUploadError('')
+    setCompressStats('')
+
+    const compressedFiles = await compressImages(files, { maxWidth: 1200, quality: 0.8 })
 
     const uploadedUrls = []
-    for (const file of files) {
+    for (const file of compressedFiles) {
       const ext = file.name.split('.').pop()
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
       const { error } = await supabase.storage.from('products').upload(path, file)
@@ -413,7 +427,7 @@ export default function AdminDashboard() {
                     ))}
                 </div>
                 <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-line px-3 py-2 text-xs text-ink/70 hover:border-mauve-400">
-                  {uploading ? 'Mengunggah...' : 'Upload Foto'}
+                  {uploading ? 'Mengompres & mengunggah...' : 'Upload Foto'}
                   <input
                     type="file"
                     accept="image/*"
@@ -423,6 +437,7 @@ export default function AdminDashboard() {
                     onChange={handleFileUpload}
                   />
                 </label>
+                {compressStats && <p className="mt-1 text-xs text-green-700">{compressStats}</p>}
                 {uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
                 <p className="mt-2 text-[11px] text-ink/40">
                   Atau tempel URL foto manual (pisahkan dengan koma) di bawah ini:
@@ -459,7 +474,7 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                         <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-line px-3 py-1.5 text-[11px] text-ink/70 hover:border-mauve-400">
-                          {uploading ? 'Mengunggah...' : `Upload Foto untuk ${c}`}
+                          {uploading ? 'Mengompres & mengunggah...' : `Upload Foto untuk ${c}`}
                           <input
                             type="file"
                             accept="image/*"
