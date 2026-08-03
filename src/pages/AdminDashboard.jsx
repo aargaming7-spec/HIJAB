@@ -23,6 +23,7 @@ const emptyForm = {
   description: '',
   stock: '',
   variants: [], // [{ color, size, stock }]
+  colorImages: {}, // { "Black": ["url1","url2"] }
   rating: '',
   is_best_seller: false,
   is_new_arrival: false,
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [uploadingColor, setUploadingColor] = useState(null)
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
 
@@ -94,6 +96,46 @@ export default function AdminDashboard() {
     e.target.value = ''
   }
 
+  async function handleColorFileUpload(e, colorName) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingColor(colorName)
+    setUploadError('')
+
+    const uploadedUrls = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage.from('products').upload(path, file)
+      if (error) {
+        setUploadError(error.message)
+        continue
+      }
+      const { data } = supabase.storage.from('products').getPublicUrl(path)
+      uploadedUrls.push(data.publicUrl)
+    }
+
+    setUploadingColor(null)
+    if (uploadedUrls.length) {
+      setForm((prev) => ({
+        ...prev,
+        colorImages: {
+          ...prev.colorImages,
+          [colorName]: [...(prev.colorImages[colorName] || []), ...uploadedUrls],
+        },
+      }))
+    }
+    e.target.value = ''
+  }
+
+  function removeColorImage(colorName, index) {
+    setForm((prev) => {
+      const list = [...(prev.colorImages[colorName] || [])]
+      list.splice(index, 1)
+      return { ...prev, colorImages: { ...prev.colorImages, [colorName]: list } }
+    })
+  }
+
   function openCreate() {
     setForm(emptyForm)
     setFormOpen(true)
@@ -114,6 +156,7 @@ export default function AdminDashboard() {
       description: p.description || '',
       stock: p.stock,
       variants: p.variants || [],
+      colorImages: p.colorImages || {},
       rating: p.rating,
       is_best_seller: p.isBestSeller,
       is_new_arrival: p.isNewArrival,
@@ -151,6 +194,9 @@ export default function AdminDashboard() {
       variants: usesVariants
         ? form.variants.map((v) => ({ color: v.color, size: v.size, stock: Number(v.stock) || 0 }))
         : [],
+      color_images: Object.fromEntries(
+        Object.entries(form.colorImages).filter(([c, urls]) => colorList.includes(c) && urls?.length)
+      ),
       rating: Number(form.rating) || 0,
       is_best_seller: form.is_best_seller,
       is_new_arrival: form.is_new_arrival,
@@ -375,6 +421,45 @@ export default function AdminDashboard() {
               </div>
               <input placeholder="Warna, pisahkan dengan koma" className="input-field" value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} />
               <input placeholder="Ukuran, pisahkan dengan koma (opsional)" className="input-field" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} />
+
+              {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length > 0 && (
+                <div className="space-y-3 border border-line p-3">
+                  <p className="text-xs uppercase tracking-widest2 text-ink/50">
+                    Foto per Warna <span className="normal-case text-ink/40">(opsional — kalau kosong, pakai Foto Produk umum di atas)</span>
+                  </p>
+                  {form.colors.split(',').map((s) => s.trim()).filter(Boolean).map((c) => (
+                    <div key={c} className="border-t border-line/60 pt-2 first:border-t-0 first:pt-0">
+                      <p className="mb-1.5 text-xs text-ink/70">{c}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {(form.colorImages[c] || []).map((url, i) => (
+                          <div key={i} className="relative h-16 w-14">
+                            <img src={url} alt="" className="h-full w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeColorImage(c, i)}
+                              className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-paper"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <label className="mt-2 inline-flex cursor-pointer items-center gap-2 border border-line px-3 py-1.5 text-[11px] text-ink/70 hover:border-mauve-400">
+                        {uploadingColor === c ? 'Mengunggah...' : `Upload Foto untuk ${c}`}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          disabled={uploadingColor === c}
+                          onChange={(e) => handleColorFileUpload(e, c)}
+                        />
+                      </label>
+                    </div>
+                  ))}
+                  {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+                </div>
+              )}
 
               {form.colors.split(',').map((s) => s.trim()).filter(Boolean).length > 0 && (
                 <VariantStockEditor

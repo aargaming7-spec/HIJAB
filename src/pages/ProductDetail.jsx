@@ -48,8 +48,16 @@ export default function ProductDetail() {
       setColor(product.colors?.[0] ?? null)
       setSize(product.sizes?.[0] ?? null)
       setQuantity(1)
+      setActiveImage(0)
     }
   }, [product?.id])
+
+  // Kalau warna yang dipilih punya foto sendiri (diisi dari Admin), gunakan
+  // itu. Kalau nggak ada foto untuk warna tersebut, tetap pakai foto umum
+  // produk — jadi warna yang belum diisi fotonya tidak jadi kosong.
+  useEffect(() => {
+    setActiveImage(0)
+  }, [color])
 
   if (!product) {
     return (
@@ -69,6 +77,8 @@ export default function ProductDetail() {
   const totalStock = getTotalStock(product)
   const variantStock = getVariantStock(product, color, size)
   const hasVariants = product.variants && product.variants.length > 0
+  const galleryImages =
+    color && product.colorImages?.[color]?.length ? product.colorImages[color] : product.images
 
   function isColorAvailable(c) {
     if (!hasVariants) return true
@@ -111,14 +121,14 @@ export default function ProductDetail() {
         <div>
           <div className="aspect-[4/5] overflow-hidden bg-mist">
             <img
-              src={product.images[activeImage]}
+              src={galleryImages[activeImage] ?? galleryImages[0]}
               alt={product.name}
               className="h-full w-full object-cover"
             />
           </div>
-          {product.images.length > 1 && (
+          {galleryImages.length > 1 && (
             <div className="mt-3 flex gap-3">
-              {product.images.map((img, i) => (
+              {galleryImages.map((img, i) => (
                 <button
                   key={img}
                   onClick={() => setActiveImage(i)}

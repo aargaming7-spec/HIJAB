@@ -11,12 +11,15 @@ export default function SearchModal({ open, onClose }) {
   const results = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
+    // Pakai (field || '') supaya kalau ada produk yang belum lengkap diisi
+    // (nama/kategori/koleksi kosong), pencarian tetap jalan — tidak crash
+    // dan bikin seluruh halaman jadi putih kosong.
     return products
       .filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.collection.toLowerCase().includes(q)
+          (p.name || '').toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q) ||
+          (p.collection || '').toLowerCase().includes(q)
       )
       .slice(0, 8)
   }, [query, products])
@@ -53,7 +56,7 @@ export default function SearchModal({ open, onClose }) {
                   onClick={onClose}
                   className="flex items-center gap-4 px-3 py-2.5 hover:bg-mist transition-colors duration-250"
                 >
-                  <img src={p.images[0]} alt="" className="h-14 w-12 object-cover bg-mist" />
+                  <img src={p.images?.[0] || ''} alt="" className="h-14 w-12 object-cover bg-mist" />
                   <div>
                     <p className="text-sm">{p.name}</p>
                     <p className="text-xs text-ink/50">

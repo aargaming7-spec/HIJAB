@@ -19,6 +19,12 @@
 alter table public.products
   add column if not exists sold_count integer not null default 0;
 
+-- Foto per warna: { "Black": ["url1","url2"], "Cream": ["url3"] }.
+-- Kalau warna tertentu tidak punya foto sendiri, halaman produk otomatis
+-- pakai foto umum (kolom "images") sebagai fallback.
+alter table public.products
+  add column if not exists color_images jsonb not null default '{}'::jsonb;
+
 create or replace function public.decrement_product_stock(items jsonb)
 returns jsonb
 language plpgsql

@@ -20,6 +20,7 @@ function mapRow(row) {
     stock: row.stock ?? 0,
     soldCount: row.sold_count ?? 0,
     variants: Array.isArray(row.variants) ? row.variants : [],
+    colorImages: row.color_images && typeof row.color_images === 'object' ? row.color_images : {},
     rating: row.rating ?? 0,
     isBestSeller: row.is_best_seller || false,
     isNewArrival: row.is_new_arrival || false,
